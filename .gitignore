@@ -1,0 +1,9 @@
+.metadata/
+target/
+*.class
+*.log
+*.jar
+node_modules/
+.env
+.idea/
+.vscode/
