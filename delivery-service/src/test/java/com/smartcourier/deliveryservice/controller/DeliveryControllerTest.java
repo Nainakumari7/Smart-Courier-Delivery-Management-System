@@ -93,6 +93,43 @@ public class DeliveryControllerTest {
     }
 
     @Test
+    public void testSearchDeliveries() {
+        when(deliveryService.searchDeliveries(anyString(), anyString())).thenReturn(Arrays.asList(new DeliveryResponse()));
+        ResponseEntity<List<DeliveryResponse>> response = deliveryController.searchDeliveries("test", "PENDING");
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    public void testCancelDelivery() {
+        when(deliveryService.cancelDelivery(anyLong())).thenReturn(new DeliveryResponse());
+        ResponseEntity<DeliveryResponse> response = deliveryController.cancelDelivery(1L);
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    public void testUpdateAddress() {
+        com.smartcourier.deliveryservice.dto.request.AddressUpdateRequest request = new com.smartcourier.deliveryservice.dto.request.AddressUpdateRequest();
+        when(deliveryService.updateDeliveryAddress(anyLong(), any())).thenReturn(new DeliveryResponse());
+        ResponseEntity<DeliveryResponse> response = deliveryController.updateAddress(1L, request);
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    public void testEstimateTime() {
+        when(deliveryService.estimateDeliveryTime(anyLong())).thenReturn(new DeliveryResponse());
+        ResponseEntity<DeliveryResponse> response = deliveryController.estimateTime(1L);
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    public void testAssignAgent() {
+        com.smartcourier.deliveryservice.dto.request.AgentAssignmentRequest request = new com.smartcourier.deliveryservice.dto.request.AgentAssignmentRequest();
+        when(deliveryService.assignAgent(anyLong(), any())).thenReturn(new DeliveryResponse());
+        ResponseEntity<DeliveryResponse> response = deliveryController.assignAgent(1L, request);
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
     public void testDeleteDelivery() {
         doNothing().when(deliveryService).deleteDelivery(anyLong());
 

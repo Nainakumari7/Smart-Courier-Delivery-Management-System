@@ -1,0 +1,101 @@
+/* App-level layout utilities */
+.page-container {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(6) { animation-delay: 0.3s; }
+
+/* Gradient backgrounds */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+}
+
+.bg-gradient-warm {
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, #00C853 0%, #5EFC82 100%);
+}
+
+.bg-gradient-mesh {
+  background:
+    radial-gradient(at 20% 80%, rgba(26,35,126,0.06) 0%, transparent 50%),
+    radial-gradient(at 80% 20%, rgba(255,109,0,0.04) 0%, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(83,75,174,0.03) 0%, transparent 50%);
+}
+
+/* Status indicator dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.status-dot.active {
+  animation: pulse 2s infinite;
+}
+
+/* Card hover glow effect */
+.card-glow:hover {
+  box-shadow: 0 0 30px rgba(26, 35, 126, 0.12), 0 8px 32px rgba(27, 37, 89, 0.1);
+}
+
+/* Sidebar styles */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: #68769F;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sidebar-link:hover {
+  background: rgba(26, 35, 126, 0.06);
+  color: #059669;
+}
+
+.sidebar-link.active {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(26, 35, 126, 0.3);
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.empty-state svg {
+  opacity: 0.3;
+  margin-bottom: 16px;
+}

@@ -21,6 +21,13 @@ public class DeliveryController {
     private DeliveryService deliveryService;
 
 
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<DeliveryResponse>> searchDeliveries(@RequestParam(value = "query", required = false) String query,
+                                                                  @RequestParam(value = "status", required = false) String status) {
+        return ResponseEntity.ok(deliveryService.searchDeliveries(query, status));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<DeliveryResponse> createDelivery(@Valid @RequestBody DeliveryRequest request) {
@@ -48,7 +55,7 @@ public class DeliveryController {
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DeliveryResponse> updateStatus(@PathVariable("id") Long id, 
                                                         @Valid @RequestBody DeliveryStatusUpdateRequest request) {
         return ResponseEntity.ok(deliveryService.updateDeliveryStatus(id, request));
@@ -85,6 +92,13 @@ public class DeliveryController {
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<Void> deleteDelivery(@PathVariable("id") Long id) {
         deliveryService.deleteDelivery(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteAllDeliveries() {
+        deliveryService.deleteAllDeliveries();
         return ResponseEntity.noContent().build();
     }
 }

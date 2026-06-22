@@ -11,6 +11,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.smartcourier.deliveryservice.repository.OutboxEventRepository;
+import com.smartcourier.deliveryservice.entity.OutboxEvent;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +26,10 @@ public class DeliveryServiceImpl implements DeliveryService {
     private DeliveryRepository deliveryRepository;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private OutboxEventRepository outboxEventRepository;
+
+    @Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -62,6 +67,29 @@ public class DeliveryServiceImpl implements DeliveryService {
         Delivery delivery = deliveryRepository.findByTrackingNumber(trackingNumber)
                 .orElseThrow(() -> new RuntimeException("Delivery not found with tracking number: " + trackingNumber));
         return mapToResponse(delivery);
+    }
+
+    @Override
+    public List<DeliveryResponse> searchDeliveries(String query, String status) {
+        System.out.println("Searching deliveries with query: '" + query + "' and status: '" + status + "'");
+        
+        DeliveryStatus deliveryStatus = null;
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                deliveryStatus = DeliveryStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                System.err.println("Invalid status provided for search: " + status);
+            }
+        }
+
+        String searchQuery = (query == null) ? "" : query.trim();
+        List<Delivery> deliveries = deliveryRepository.searchDeliveries(searchQuery, deliveryStatus);
+        
+        System.out.println("Found " + deliveries.size() + " deliveries matching criteria");
+        
+        return deliveries.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -167,6 +195,12 @@ public class DeliveryServiceImpl implements DeliveryService {
         deliveryRepository.delete(delivery);
     }
 
+    @Override
+    @Transactional
+    public void deleteAllDeliveries() {
+        deliveryRepository.deleteAll();
+    }
+
     private DeliveryResponse mapToResponse(Delivery delivery) {
         DeliveryResponse response = new DeliveryResponse();
         response.setId(delivery.getId());
@@ -184,7 +218,20 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     private void publishDeliveryEvent(String routingKeySuffix, DeliveryResponse response) {
-        String routingKey = "delivery.routing.key." + routingKeySuffix;
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, routingKey, response);
+        try {
+            String routingKey = "delivery.routing.key." + routingKeySuffix;
+            String payload = objectMapper.writeValueAsString(response);
+            
+            OutboxEvent event = OutboxEvent.builder()
+                    .aggregateId(response.getId().toString())
+                    .eventType(routingKey)
+                    .payload(payload)
+                    .status(OutboxEvent.OutboxStatus.PENDING)
+                    .build();
+            
+            outboxEventRepository.save(event);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new RuntimeException("Error serializing delivery event: " + e.getMessage());
+        }
     }
 }

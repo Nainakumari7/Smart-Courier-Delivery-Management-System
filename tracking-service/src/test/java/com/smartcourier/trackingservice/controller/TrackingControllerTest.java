@@ -40,4 +40,26 @@ public class TrackingControllerTest {
         assertEquals(2, response.getBody().size());
         verify(trackingService, times(1)).getTrackingHistory("TRK-123");
     }
+
+    @Test
+    public void testGetLatestTrackingStatus() {
+        when(trackingService.getLatestTrackingStatus("TRK-123")).thenReturn(new TrackingResponse());
+        ResponseEntity<TrackingResponse> response = trackingController.getLatestTrackingStatus("TRK-123");
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    public void testAddTrackingEvent() {
+        com.smartcourier.trackingservice.dto.TrackingEventRequest request = new com.smartcourier.trackingservice.dto.TrackingEventRequest();
+        doNothing().when(trackingService).addTrackingEvent(any());
+        ResponseEntity<Void> response = trackingController.addTrackingEvent(request);
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    public void testDeleteTrackingEvent() {
+        doNothing().when(trackingService).deleteTrackingEvent(anyLong());
+        ResponseEntity<Void> response = trackingController.deleteTrackingEvent(1L);
+        assertEquals(204, response.getStatusCode().value());
+    }
 }

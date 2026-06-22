@@ -23,9 +23,11 @@ public class JwtUtils {
     @Value("${jwt.expirationMs}")
     private int jwtExpirationMs;
 
+    
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
-        String role = userPrincipal.getAuthorities().iterator().next().getAuthority();
+        String role = userPrincipal.getAuthorities().isEmpty() ? "ROLE_CUSTOMER" : 
+                userPrincipal.getAuthorities().iterator().next().getAuthority();
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
@@ -48,7 +50,7 @@ public class JwtUtils {
 
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
+            Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);
             return true;
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());

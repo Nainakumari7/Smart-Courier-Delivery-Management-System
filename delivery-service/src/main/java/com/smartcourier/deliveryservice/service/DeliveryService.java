@@ -11,10 +11,12 @@ public interface DeliveryService {
     DeliveryResponse getDeliveryById(Long id);
     DeliveryResponse getDeliveryByTrackingNumber(String trackingNumber);
     List<DeliveryResponse> getUserDeliveries(Long userId);
+    List<DeliveryResponse> searchDeliveries(String query, String status);
     DeliveryResponse updateDeliveryStatus(Long id, DeliveryStatusUpdateRequest request);
     DeliveryResponse cancelDelivery(Long id);
     DeliveryResponse updateDeliveryAddress(Long id, com.smartcourier.deliveryservice.dto.request.AddressUpdateRequest request);
     DeliveryResponse estimateDeliveryTime(Long id);
     DeliveryResponse assignAgent(Long id, com.smartcourier.deliveryservice.dto.request.AgentAssignmentRequest request);
     void deleteDelivery(Long id);
+    void deleteAllDeliveries();
 }

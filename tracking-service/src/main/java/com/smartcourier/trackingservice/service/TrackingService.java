@@ -10,4 +10,5 @@ public interface TrackingService {
     void addTrackingEvent(com.smartcourier.trackingservice.dto.TrackingEventRequest request);
     List<TrackingResponse> getTrackingHistory(String trackingNumber);
     TrackingResponse getLatestTrackingStatus(String trackingNumber);
+    void deleteTrackingEvent(Long id);
 }

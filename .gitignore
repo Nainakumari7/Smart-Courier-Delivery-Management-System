@@ -7,3 +7,13 @@ node_modules/
 .env
 .idea/
 .vscode/
+*.zip
+logs/
+~$*
+*_output.txt
+test_output.txt
+compile_errors.txt
+sonar_log.txt
+*.pptx
+report.html
+report.pdf

@@ -19,6 +19,14 @@ services:
       timeout: 5s
       retries: 5
 
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: courier-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - courier-network
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: courier-rabbitmq
@@ -38,8 +46,8 @@ services:
 
   eureka-server:
     build:
-      context: ./eureka-server
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: eureka-server/Dockerfile
     container_name: courier-eureka
     ports:
       - "8761:8761"
@@ -53,8 +61,8 @@ services:
 
   config-server:
     build:
-      context: ./config-server
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: config-server/Dockerfile
     container_name: courier-config
     ports:
       - "8888:8888"
@@ -62,29 +70,40 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     networks:
       - courier-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       eureka-server:
         condition: service_healthy
 
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: api-gateway/Dockerfile
     container_name: courier-gateway
     ports:
       - "8080:8080"
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     networks:
       - courier-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       eureka-server:
         condition: service_healthy
 
   auth-service:
     build:
-      context: ./auth-service
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: auth-service/Dockerfile
     container_name: courier-auth
     ports:
       - "8081:8081"
@@ -94,8 +113,20 @@ services:
       - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - SPRING_MAIL_HOST=smtp.gmail.com
+      - SPRING_MAIL_PORT=587
+      - SPRING_MAIL_USERNAME=nainabhagat2003@gmail.com
+      - SPRING_MAIL_PASSWORD=hvtvkcejgaxnroun
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
     networks:
       - courier-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,8 +135,8 @@ services:
 
   delivery-service:
     build:
-      context: ./delivery-service
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: delivery-service/Dockerfile
     container_name: courier-delivery
     ports:
       - "8082:8082"
@@ -116,8 +147,16 @@ services:
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
       - SPRING_RABBITMQ_HOST=rabbitmq
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - RAZORPAY_KEY_ID=rzp_test_SkYr7Zhbkxavkz
+      - RAZORPAY_KEY_SECRET=gy7chjf1y7UK4ccg8151XFv8
     networks:
       - courier-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,8 +167,8 @@ services:
 
   tracking-service:
     build:
-      context: ./tracking-service
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: tracking-service/Dockerfile
     container_name: courier-tracking
     ports:
       - "8083:8083"
@@ -140,8 +179,14 @@ services:
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
       - SPRING_RABBITMQ_HOST=rabbitmq
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     networks:
       - courier-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -152,17 +197,56 @@ services:
 
   admin-service:
     build:
-      context: ./admin-service
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: admin-service/Dockerfile
     container_name: courier-admin
     ports:
       - "8084:8084"
+    networks:
+      - courier-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/courier_admin
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+  sonarqube:
+    image: sonarqube:9.9-community
+    container_name: courier-sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/courier_sonar
+      - SONAR_JDBC_USERNAME=root
+      - SONAR_JDBC_PASSWORD=password
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
     networks:
       - courier-network
     depends_on:
-      eureka-server:
+      postgres:
+        condition: service_healthy
+
+  smart-courier-frontend:
+    build:
+      context: ./smart-courier-frontend
+      dockerfile: Dockerfile
+    container_name: courier-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - courier-network
+    depends_on:
+      api-gateway:
         condition: service_healthy
 
 networks:

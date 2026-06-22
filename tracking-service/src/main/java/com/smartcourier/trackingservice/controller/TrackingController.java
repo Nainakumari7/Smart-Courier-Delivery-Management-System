@@ -18,13 +18,11 @@ public class TrackingController {
     private TrackingService trackingService;
     
     @GetMapping("/{trackingNumber}")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<List<TrackingResponse>> getTrackingHistory(@PathVariable("trackingNumber") String trackingNumber) {
         return ResponseEntity.ok(trackingService.getTrackingHistory(trackingNumber));
     }
 
     @GetMapping("/{trackingNumber}/latest")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<TrackingResponse> getLatestTrackingStatus(@PathVariable("trackingNumber") String trackingNumber) {
         return ResponseEntity.ok(trackingService.getLatestTrackingStatus(trackingNumber));
     }
@@ -34,5 +32,12 @@ public class TrackingController {
     public ResponseEntity<Void> addTrackingEvent(@Valid @RequestBody com.smartcourier.trackingservice.dto.TrackingEventRequest request) {
         trackingService.addTrackingEvent(request);
         return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteTrackingEvent(@PathVariable("id") Long id) {
+        trackingService.deleteTrackingEvent(id);
+        return ResponseEntity.noContent().build();
     }
 }

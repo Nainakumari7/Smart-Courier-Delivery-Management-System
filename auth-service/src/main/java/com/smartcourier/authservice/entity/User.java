@@ -1,6 +1,7 @@
 package com.smartcourier.authservice.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,4 +27,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean blocked = false;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean enabled = false;
 }

@@ -27,7 +27,7 @@ public class DeliveryEntityTests {
 
     @Test
     public void testPackage() {
-        Package pkg = new Package(1L, "Desc", 10.0, 5.0, 5.0, 5.0);
+        Package pkg = new Package(1L, "Desc", 10.0, 10.0, 100.0, 5.0, 5.0, 5.0);
         assertEquals(1L, pkg.getId());
         assertEquals("Desc", pkg.getDescription());
         assertEquals(10.0, pkg.getWeight());

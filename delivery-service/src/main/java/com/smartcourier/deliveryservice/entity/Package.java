@@ -17,6 +17,8 @@ public class Package {
 
     private String description;
     private Double weight; // in kg
+    private Double pricePerKg;
+    private Double totalPrice;
     private Double length;
     private Double width;
     private Double height;

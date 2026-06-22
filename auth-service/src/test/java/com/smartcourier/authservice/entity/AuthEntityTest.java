@@ -25,9 +25,11 @@ public class AuthEntityTest {
         assertEquals("email2", u.getEmail());
         assertEquals("pass2", u.getPassword());
         assertEquals(Role.ROLE_ADMIN, u.getRole());
+        assertEquals(false, u.isBlocked());
         
-        User u2 = new User(2L, "user3", "email3", "pass3", Role.ROLE_CUSTOMER);
+        User u2 = new User(2L, "user3", "email3", "pass3", Role.ROLE_CUSTOMER, false, true);
         assertEquals(2L, u2.getId());
         assertEquals("user3", u2.getUsername());
+        assertEquals(false, u2.isBlocked());
     }
 }

@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import com.smartcourier.deliveryservice.repository.OutboxEventRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartcourier.deliveryservice.entity.OutboxEvent;
 
 import com.smartcourier.deliveryservice.dto.request.DeliveryRequest;
 import com.smartcourier.deliveryservice.dto.request.DeliveryStatusUpdateRequest;
@@ -31,7 +33,10 @@ public class DeliveryServiceImplTest {
     private DeliveryRepository deliveryRepository;
 
     @Mock
-    private RabbitTemplate rabbitTemplate;
+    private OutboxEventRepository outboxEventRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private DeliveryServiceImpl deliveryService;
@@ -45,7 +50,7 @@ public class DeliveryServiceImplTest {
     public void testCreateDelivery() {
         DeliveryRequest request = new DeliveryRequest();
         request.setUserId(1L);
-        request.setPkg(new Package(1L, "Test package", 2.0, 10.0, 10.0, 10.0));
+        request.setPkg(new Package(1L, "Test package", 2.0, 100.0, 200.0, 10.0, 10.0, 10.0));
         request.setOriginAddress(new Address(1L, "123 Main St", "City", "State", "12345", "Country"));
         request.setDestinationAddress(new Address(2L, "456 Main St", "City", "State", "12345", "Country"));
 
@@ -65,7 +70,7 @@ public class DeliveryServiceImplTest {
         assertEquals(DeliveryStatus.PENDING, response.getStatus());
         assertEquals("TRK-12345678", response.getTrackingNumber());
         
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString(), any(Object.class));
+        verify(outboxEventRepository, times(1)).save(any(OutboxEvent.class));
     }
 
     @Test
@@ -86,7 +91,7 @@ public class DeliveryServiceImplTest {
         assertNotNull(response);
         assertEquals(DeliveryStatus.IN_TRANSIT, response.getStatus());
 
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString(), any(Object.class));
+        verify(outboxEventRepository, times(1)).save(any(OutboxEvent.class));
     }
 
     @Test
@@ -128,6 +133,128 @@ public class DeliveryServiceImplTest {
 
         assertEquals(1, responseList.size());
         assertEquals(99L, responseList.get(0).getUserId());
+    }
+
+    @Test
+    public void testCancelDelivery_Success() {
+        Delivery delivery = new Delivery();
+        delivery.setId(1L);
+        delivery.setStatus(DeliveryStatus.PENDING);
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.save(any(Delivery.class))).thenReturn(delivery);
+
+        DeliveryResponse response = deliveryService.cancelDelivery(1L);
+
+        assertEquals(DeliveryStatus.CANCELLED, response.getStatus());
+        verify(outboxEventRepository, times(1)).save(any(OutboxEvent.class));
+    }
+
+    @Test
+    public void testCancelDelivery_AlreadyDelivered() {
+        Delivery delivery = new Delivery();
+        delivery.setId(1L);
+        delivery.setStatus(DeliveryStatus.DELIVERED);
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
+            deliveryService.cancelDelivery(1L);
+        });
+    }
+
+    @Test
+    public void testUpdateDeliveryAddress_Success() {
+        Delivery delivery = new Delivery();
+        delivery.setId(1L);
+        delivery.setStatus(DeliveryStatus.PENDING);
+        delivery.setDestinationAddress(new Address());
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.save(any(Delivery.class))).thenReturn(delivery);
+
+        com.smartcourier.deliveryservice.dto.request.AddressUpdateRequest request = new com.smartcourier.deliveryservice.dto.request.AddressUpdateRequest();
+        request.setNewDestinationAddress("New Address");
+
+        DeliveryResponse response = deliveryService.updateDeliveryAddress(1L, request);
+
+        assertNotNull(response);
+        verify(deliveryRepository, times(1)).save(delivery);
+    }
+
+    @Test
+    public void testUpdateDeliveryAddress_NotPending() {
+        Delivery delivery = new Delivery();
+        delivery.setId(1L);
+        delivery.setStatus(DeliveryStatus.IN_TRANSIT);
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+
+        com.smartcourier.deliveryservice.dto.request.AddressUpdateRequest request = new com.smartcourier.deliveryservice.dto.request.AddressUpdateRequest();
+
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
+            deliveryService.updateDeliveryAddress(1L, request);
+        });
+    }
+
+    @Test
+    public void testEstimateDeliveryTime() {
+        Delivery delivery = new Delivery();
+        delivery.setId(1L);
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.save(any(Delivery.class))).thenReturn(delivery);
+
+        DeliveryResponse response = deliveryService.estimateDeliveryTime(1L);
+
+        assertNotNull(response.getEstimatedDeliveryTime());
+    }
+
+    @Test
+    public void testAssignAgent() {
+        Delivery delivery = new Delivery();
+        delivery.setId(1L);
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.save(any(Delivery.class))).thenReturn(delivery);
+
+        com.smartcourier.deliveryservice.dto.request.AgentAssignmentRequest request = new com.smartcourier.deliveryservice.dto.request.AgentAssignmentRequest();
+        request.setAgentId(42L);
+
+        DeliveryResponse response = deliveryService.assignAgent(1L, request);
+
+        assertEquals(42L, response.getAgentId());
+        assertEquals(DeliveryStatus.ASSIGNED, response.getStatus());
+    }
+
+    @Test
+    public void testSearchDeliveries() {
+        when(deliveryRepository.searchDeliveries(anyString(), any())).thenReturn(java.util.Collections.emptyList());
+        java.util.List<DeliveryResponse> results = deliveryService.searchDeliveries("test", "PENDING");
+        assertNotNull(results);
+    }
+
+    @Test
+    public void testSearchDeliveries_InvalidStatus() {
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
+            deliveryService.searchDeliveries("test", "INVALID_STATUS");
+        });
+    }
+
+    @Test
+    public void testUpdateDeliveryStatus_InvalidStatus() {
+        Delivery delivery = new Delivery();
+        delivery.setId(1L);
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+        
+        DeliveryStatusUpdateRequest updateRequest = new DeliveryStatusUpdateRequest();
+        updateRequest.setStatus("INVALID_STATUS");
+
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
+            deliveryService.updateDeliveryStatus(1L, updateRequest);
+        });
+    }
+
+    @Test
+    public void testGetDeliveryById_NotFound() {
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.empty());
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
+            deliveryService.getDeliveryById(1L);
+        });
     }
 
     @Test
