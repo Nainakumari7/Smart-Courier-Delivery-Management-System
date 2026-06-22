@@ -17,3 +17,7 @@ sonar_log.txt
 *.pptx
 report.html
 report.pdf
+
+compile_out.txt
+output.txt
+test_out.txt
